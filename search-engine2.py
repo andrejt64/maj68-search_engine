@@ -17,19 +17,38 @@ def load_data():
 data = load_data()
 
 # App Title
-st.title("May68-Search-Engine")
+st.title("Advanced Search Tool for Person Data")
+
+# Normalize the entire dataset for suggestions
+normalized_data = data.applymap(normalize_string)
 
 # Search Type
 search_type = st.radio("Search Mode:", ["Global Search", "Field-Specific Search"])
-
-# Input Query
-query = st.text_input("Enter your search query:")
 
 # Column Selection for Field-Specific Search
 if search_type == "Field-Specific Search":
     column = st.selectbox("Choose column to search in:", data.columns)
 else:
     column = None
+
+# Generate Suggestions
+if column:
+    # Get unique, normalized values from the selected column
+    suggestions = data[column].dropna().astype(str).apply(normalize_string).unique()
+else:
+    # Get unique, normalized values from the entire dataset
+    suggestions = pd.Series(normalized_data.values.flatten()).dropna().unique()
+
+# Search Query with Autocomplete
+query = st.selectbox(
+    "Enter or select your search query:",
+    options=[""] + sorted(suggestions),  # Add a blank option for custom input
+    format_func=lambda x: x if x else "Type to search or select...",
+    key="autocomplete_query",
+)
+
+# Allow custom input
+query_input = st.text_input("Or type your own search query:", value=query)
 
 # Column Selection for Result Presentation
 columns_to_display = st.multiselect("Choose columns to display:", data.columns, default=data.columns)
@@ -48,9 +67,9 @@ def search_data(dataframe, query, column=None):
         )
         return dataframe[mask]
 
-# Show Results
-if query:
-    results = search_data(data, query, column)
+# Perform the search
+if query_input:
+    results = search_data(data, query_input, column)
     if not results.empty:
         st.write(f"Found {len(results)} result(s):")
         # Show results with only selected columns
