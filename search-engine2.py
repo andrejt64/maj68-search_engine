@@ -17,7 +17,7 @@ def load_data():
 data = load_data()
 
 # App Title
-st.title("Advanced Search Tool for Person Data")
+st.title("Maj68-Search-Engine")
 
 # Normalize the dataset for autocomplete suggestions
 normalized_data = data.applymap(normalize_string)
