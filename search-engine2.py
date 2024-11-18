@@ -19,7 +19,7 @@ data = load_data()
 # App Title
 st.title("Advanced Search Tool for Person Data")
 
-# Normalize the entire dataset for suggestions
+# Normalize the dataset for autocomplete suggestions
 normalized_data = data.applymap(normalize_string)
 
 # Search Type
@@ -31,24 +31,29 @@ if search_type == "Field-Specific Search":
 else:
     column = None
 
+# Input Query
+query_input = st.text_input("Start typing your query:")
+
 # Generate Suggestions
 if column:
     # Get unique, normalized values from the selected column
-    suggestions = data[column].dropna().astype(str).apply(normalize_string).unique()
+    column_data = data[column].dropna().astype(str)
 else:
-    # Get unique, normalized values from the entire dataset
-    suggestions = pd.Series(normalized_data.values.flatten()).dropna().unique()
+    # Combine all columns into a single Series for global suggestions
+    column_data = pd.Series(data.values.flatten()).dropna().astype(str)
 
-# Search Query with Autocomplete
-query = st.selectbox(
-    "Enter or select your search query:",
-    options=[""] + sorted(suggestions),  # Add a blank option for custom input
-    format_func=lambda x: x if x else "Type to search or select...",
-    key="autocomplete_query",
-)
+# Match query with suggestions
+if query_input:
+    normalized_query = normalize_string(query_input)
+    suggestions = column_data[column_data.apply(normalize_string).str.contains(normalized_query, na=False)].unique()
 
-# Allow custom input
-query_input = st.text_input("Or type your own search query:", value=query)
+    # Display suggestions below the search box
+    if len(suggestions) > 0:
+        st.write("Suggestions:")
+        for suggestion in suggestions[:10]:  # Limit to top 10 suggestions
+            st.write(f"- {suggestion}")
+    else:
+        st.write("No suggestions available.")
 
 # Column Selection for Result Presentation
 columns_to_display = st.multiselect("Choose columns to display:", data.columns, default=data.columns)
@@ -56,7 +61,6 @@ columns_to_display = st.multiselect("Choose columns to display:", data.columns, 
 # Search Logic
 def search_data(dataframe, query, column=None):
     normalized_query = normalize_string(query)
-    
     if column:
         # Normalize column values for comparison
         return dataframe[dataframe[column].apply(normalize_string).str.contains(normalized_query, na=False)]
