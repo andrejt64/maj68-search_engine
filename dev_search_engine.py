@@ -51,21 +51,31 @@ if column:
     # Get unique, normalized values from the selected column
     column_data = data[column].dropna().astype(str)
 else:
-    # Combine all columns into a single Series for global suggestions
-    column_data = pd.Series(data.values.flatten()).dropna().astype(str)
+    # Combine all columns into a single DataFrame for global suggestions with column names
+    column_data = pd.DataFrame(
+        [(col, value) for col in data.columns for value in data[col].dropna()],
+        columns=["column", "value"]
+    )
 
 # Match query with suggestions
 if query_input:
     normalized_query = normalize_string(query_input)
-    suggestions = column_data[column_data.apply(normalize_string).str.contains(normalized_query, na=False)].unique()
+    if column:
+        # Field-specific suggestions
+        suggestions = column_data[column_data.astype(str).apply(normalize_string).str.contains(normalized_query, na=False)].unique()
+        suggestions = pd.DataFrame({"column": [column] * len(suggestions), "value": suggestions})
+    else:
+        # Global suggestions
+        suggestions = column_data[column_data["value"].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)]
 
     # Display clickable suggestions below the search box
-    if len(suggestions) > 0:
+    if not suggestions.empty:
         st.write("Suggestions:")
-        for suggestion in suggestions[:10]:  # Limit to top 10 suggestions
-            if st.button(suggestion):  # Directly display the suggestion as a button
-                st.session_state.query_input = suggestion  # Update the query input in session state
-                query_input = suggestion  # Immediately update query_input
+        for _, row in suggestions.iterrows():
+            display_text = f"{row['value']} (from {row['column']})"
+            if st.button(display_text):
+                st.session_state.query_input = row["value"]  # Update the query input in session state
+                query_input = row["value"]  # Immediately update query_input
     else:
         st.write("No suggestions available.")
 
