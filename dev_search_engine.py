@@ -16,12 +16,11 @@ def load_data():
 
 data = load_data()
 
-# Ensure the year column is displayed correctly
+# Ensure the year and birth columns are displayed correctly
 if "year" in data.columns:
-    data["year"] = data["year"].apply(lambda x: int(x) if pd.notna(x) else x)
-
+    data["year"] = data["year"].apply(lambda x: int(x) if pd.notna(x) else "")
 if "birth" in data.columns:
-    data["birth"] = data["birth"].apply(lambda x: int(x) if pd.notna(x) else x)
+    data["birth"] = data["birth"].apply(lambda x: int(x) if pd.notna(x) else "")
 
 # Sanitize column names to remove invalid options
 valid_columns = [col for col in data.columns if col.strip() != "#"]  # Exclude columns with just "#"
@@ -93,12 +92,9 @@ def search_data(dataframe, query, column=None):
 if query_input:
     results = search_data(data, query_input, column)
     if not results.empty:
-        # Ensure proper formatting of 'birth' and 'year' columns
-        if "year" in results.columns:
-            results["year"] = results["year"].apply(lambda x: str(x) if pd.notna(x) else "")
-        if "birth" in results.columns:
-            results["birth"] = results["birth"].apply(lambda x: str(x) if pd.notna(x) else "")
+        # Use Streamlit's `format` to control the display of numeric columns
+        format_dict = {col: "{:.0f}" for col in ["year", "birth"] if col in results.columns}
         st.write(f"Found {len(results)} result(s):")
-        st.dataframe(results[columns_to_display])
+        st.dataframe(results.style.format(format_dict))  # Apply formatting here
     else:
         st.write("No results found.")
