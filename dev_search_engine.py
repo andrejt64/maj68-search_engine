@@ -26,7 +26,7 @@ if "birth" in data.columns:
 valid_columns = [col for col in data.columns if col.strip() != "#"]  # Exclude columns with just "#"
 
 # App Title
-st.title("Maj68-Search-Engine")
+st.title("Maj68-Search-Engine-dev")
 
 # Normalize the dataset for autocomplete suggestions
 normalized_data = data.applymap(normalize_string)
