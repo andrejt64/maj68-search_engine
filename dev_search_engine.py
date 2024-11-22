@@ -71,9 +71,9 @@ if query_input:
     # Display clickable suggestions below the search box
     if not suggestions.empty:
         st.write("Suggestions:")
-        for _, row in suggestions.iterrows():
+        for i, row in suggestions.iterrows():
             display_text = f"{row['value']} (from {row['column']})"
-            if st.button(display_text):
+            if st.button(display_text, key=f"suggestion_{i}"):  # Add a unique key
                 st.session_state.query_input = row["value"]  # Update the query input in session state
                 query_input = row["value"]  # Immediately update query_input
     else:
