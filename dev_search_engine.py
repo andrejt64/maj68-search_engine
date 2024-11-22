@@ -18,8 +18,10 @@ data = load_data()
 
 # Ensure the year column is displayed correctly
 if "year" in data.columns:
-    # Convert the 'year' column to an integer or string for proper formatting
     data["year"] = data["year"].apply(lambda x: int(x) if pd.notna(x) else x)
+
+if "birth" in data.columns:
+    data["birth"] = data["birth"].apply(lambda x: int(x) if pd.notna(x) else x)
 
 # Sanitize column names to remove invalid options
 valid_columns = [col for col in data.columns if col.strip() != "#"]  # Exclude columns with just "#"
@@ -48,62 +50,55 @@ query_input = st.text_input("Start typing your query:", value=st.session_state.q
 
 # Generate Suggestions
 if column:
-    # Get unique, normalized values from the selected column
     column_data = data[column].dropna().astype(str)
 else:
-    # Combine all columns into a single DataFrame for global suggestions with column names
     column_data = pd.DataFrame(
         [(col, value) for col in data.columns for value in data[col].dropna()],
         columns=["column", "value"]
     )
 
-# Match query with suggestions
 if query_input:
     normalized_query = normalize_string(query_input)
     if column:
-        # Field-specific suggestions
         column_data = column_data[column_data.astype(str).apply(normalize_string).str.contains(normalized_query, na=False)].unique()
         suggestions = pd.DataFrame({"column": [column] * len(column_data), "value": column_data})
     else:
-        # Global suggestions
         column_data = column_data[column_data["value"].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)]
-        column_data = column_data.drop_duplicates(subset="value")  # Remove duplicates
-        suggestions = column_data.head(10)  # Limit to top 10 suggestions
+        column_data = column_data.drop_duplicates(subset="value")
+        suggestions = column_data.head(10)
 
-    # Display clickable suggestions below the search box
     if not suggestions.empty:
         st.write("Suggestions:")
         for i, row in suggestions.iterrows():
             display_text = f"{row['value']} (from {row['column']})"
-            if st.button(display_text, key=f"suggestion_{i}"):  # Add a unique key
-                st.session_state.query_input = row["value"]  # Update the query input in session state
-                query_input = row["value"]  # Immediately update query_input
+            if st.button(display_text, key=f"suggestion_{i}"):
+                st.session_state.query_input = row["value"]
+                query_input = row["value"]
     else:
         st.write("No suggestions available.")
 
-# Column Selection for Result Presentation
 columns_to_display = st.multiselect("Choose columns to display:", valid_columns, default=valid_columns)
 
-# Search Logic
 def search_data(dataframe, query, column=None):
     normalized_query = normalize_string(query)
     if column:
-        # Normalize column values for comparison
-        col_data = dataframe[column].dropna().astype(str)  # Ensure the column is treated as strings
+        col_data = dataframe[column].dropna().astype(str)
         return dataframe[col_data.apply(normalize_string).str.contains(normalized_query, na=False)]
     else:
-        # Global search across all columns with normalization
         mask = dataframe.apply(
             lambda row: any(normalized_query in normalize_string(str(value)) for value in row), axis=1
         )
         return dataframe[mask]
 
-# Perform the search if query_input is populated
 if query_input:
     results = search_data(data, query_input, column)
     if not results.empty:
+        # Ensure proper formatting of 'birth' and 'year' columns
+        if "year" in results.columns:
+            results["year"] = results["year"].apply(lambda x: str(x) if pd.notna(x) else "")
+        if "birth" in results.columns:
+            results["birth"] = results["birth"].apply(lambda x: str(x) if pd.notna(x) else "")
         st.write(f"Found {len(results)} result(s):")
-        # Show results with only selected columns
         st.dataframe(results[columns_to_display])
     else:
         st.write("No results found.")
