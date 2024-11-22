@@ -40,15 +40,11 @@ else:
     column = None
 
 # Input Query
-query_input = st.text_input("Start typing your query:")
+if "query_input" not in st.session_state:
+    st.session_state.query_input = ""
 
-# Store the clicked suggestion using Streamlit's session state
-if "selected_suggestion" not in st.session_state:
-    st.session_state["selected_suggestion"] = ""
-
-# Update query_input if a suggestion is clicked
-if st.session_state["selected_suggestion"]:
-    query_input = st.session_state["selected_suggestion"]
+# Display search field
+query_input = st.text_input("Start typing your query:", value=st.session_state.query_input)
 
 # Generate Suggestions
 if column:
@@ -63,12 +59,13 @@ if query_input:
     normalized_query = normalize_string(query_input)
     suggestions = column_data[column_data.apply(normalize_string).str.contains(normalized_query, na=False)].unique()
 
-    # Display suggestions below the search box
+    # Display clickable suggestions below the search box
     if len(suggestions) > 0:
         st.write("Suggestions:")
         for suggestion in suggestions[:10]:  # Limit to top 10 suggestions
-            if st.button(suggestion):  # Make each suggestion a button
-                st.session_state["selected_suggestion"] = suggestion
+            if st.button(f"Search: {suggestion}"):  # Make each suggestion clickable
+                st.session_state.query_input = suggestion  # Update the query input in session state
+                query_input = suggestion  # Immediately update query_input
     else:
         st.write("No suggestions available.")
 
@@ -89,7 +86,7 @@ def search_data(dataframe, query, column=None):
         )
         return dataframe[mask]
 
-# Perform the search
+# Perform the search if query_input is populated
 if query_input:
     results = search_data(data, query_input, column)
     if not results.empty:
