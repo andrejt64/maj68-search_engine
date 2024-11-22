@@ -62,11 +62,13 @@ if query_input:
     normalized_query = normalize_string(query_input)
     if column:
         # Field-specific suggestions
-        suggestions = column_data[column_data.astype(str).apply(normalize_string).str.contains(normalized_query, na=False)].unique()
-        suggestions = pd.DataFrame({"column": [column] * len(suggestions), "value": suggestions})
+        column_data = column_data[column_data.astype(str).apply(normalize_string).str.contains(normalized_query, na=False)].unique()
+        suggestions = pd.DataFrame({"column": [column] * len(column_data), "value": column_data})
     else:
         # Global suggestions
-        suggestions = column_data[column_data["value"].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)]
+        column_data = column_data[column_data["value"].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)]
+        column_data = column_data.drop_duplicates(subset="value")  # Remove duplicates
+        suggestions = column_data.head(10)  # Limit to top 10 suggestions
 
     # Display clickable suggestions below the search box
     if not suggestions.empty:
