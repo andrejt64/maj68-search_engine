@@ -21,6 +21,9 @@ if "year" in data.columns:
     # Convert the 'year' column to an integer or string for proper formatting
     data["year"] = data["year"].apply(lambda x: int(x) if pd.notna(x) else x)
 
+# Sanitize column names to remove invalid options
+valid_columns = [col for col in data.columns if col.strip() != "#"]  # Exclude columns with just "#"
+
 # App Title
 st.title("Maj68-Search-Engine")
 
@@ -32,7 +35,7 @@ search_type = st.radio("Search Mode:", ["Global Search", "Field-Specific Search"
 
 # Column Selection for Field-Specific Search
 if search_type == "Field-Specific Search":
-    column = st.selectbox("Choose column to search in:", data.columns)
+    column = st.selectbox("Choose column to search in:", valid_columns)
 else:
     column = None
 
@@ -70,14 +73,15 @@ if query_input:
         st.write("No suggestions available.")
 
 # Column Selection for Result Presentation
-columns_to_display = st.multiselect("Choose columns to display:", data.columns, default=data.columns)
+columns_to_display = st.multiselect("Choose columns to display:", valid_columns, default=valid_columns)
 
 # Search Logic
 def search_data(dataframe, query, column=None):
     normalized_query = normalize_string(query)
     if column:
         # Normalize column values for comparison
-        return dataframe[dataframe[column].apply(normalize_string).str.contains(normalized_query, na=False)]
+        col_data = dataframe[column].dropna().astype(str)  # Ensure the column is treated as strings
+        return dataframe[col_data.apply(normalize_string).str.contains(normalized_query, na=False)]
     else:
         # Global search across all columns with normalization
         mask = dataframe.apply(
