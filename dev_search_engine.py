@@ -63,7 +63,7 @@ if query_input:
     if len(suggestions) > 0:
         st.write("Suggestions:")
         for suggestion in suggestions[:10]:  # Limit to top 10 suggestions
-            if st.button(f"Search: {suggestion}"):  # Make each suggestion clickable
+            if st.button(suggestion):  # Directly display the suggestion as a button
                 st.session_state.query_input = suggestion  # Update the query input in session state
                 query_input = suggestion  # Immediately update query_input
     else:
