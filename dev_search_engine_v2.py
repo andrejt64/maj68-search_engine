@@ -140,7 +140,7 @@ if query_input:
             data_return_mode=DataReturnMode.FILTERED_AND_SORTED, 
             update_mode=GridUpdateMode.MODEL_CHANGED, 
             fit_columns_on_grid_load=True,
-            theme='alpine',  # Lahko poskusite tudi 'light', 'dark', 'blue', 'fresh', 'material'
+            theme='balham',  # Lahko poskusite tudi 'light', 'dark', 'blue', 'fresh', 'material'
             enable_enterprise_modules=False,
             height=400,
             width='100%',
