@@ -2,81 +2,128 @@ import pandas as pd
 import streamlit as st
 import unicodedata
 
-# Normalize strings to treat "č", "ć", "c"; "š", "s"; and "ž", "z" as equivalent
+# -----------------------------
+# 1. Funkcija za normalizacijo nizov
+# -----------------------------
 def normalize_string(s):
+    """
+    Normalizira niz tako, da nadomesti črke s poudarjenimi znaki z njihovimi ASCII
+    ekvivalenti ter pretvori vse črke v male.
+    """
     if not isinstance(s, str):
         return s
     s = unicodedata.normalize('NFKD', s)
     return ''.join(c for c in s if not unicodedata.combining(c)).lower()
 
-# Load the data using st.cache_data for efficient caching
+# -----------------------------
+# 2. Nalaganje podatkov (predpomnjenje)
+# -----------------------------
 @st.cache_data
 def load_data():
+    """
+    Naloži podatke iz Excel datoteke in vrne DataFrame.
+    """
     return pd.read_excel("LIST_type=person_search-engine.xlsx", sheet_name="Sheet2")
 
-data = load_data()
+# -----------------------------
+# 3. Funkcija za iskanje
+# -----------------------------
+def search_data(dataframe, query, column=None, match_type="Delno ujemanje"):
+    """
+    Išče po DataFrame-u za vrstice, ki vsebujejo 'query'.
+    Lahko išče po določenem stolpcu ali po celotnem DataFrame-u.
+    
+    Parameters:
+        dataframe (pd.DataFrame): Podatkovni okvir za iskanje.
+        query (str): Iskalna poizvedba.
+        column (str, optional): Specifični stolpec za iskanje.
+        match_type (str): Tip ujemanja - "Delno ujemanje" ali "Natančno ujemanje".
+    
+    Returns:
+        pd.DataFrame: Rezultati iskanja.
+    """
+    normalized_query = normalize_string(query)
+    if column:
+        # Iskanje v specifičnem stolpcu
+        if match_type == "Delno ujemanje":
+            mask = dataframe[column].apply(normalize_string).str.contains(normalized_query, na=False)
+        else:  # Natančno ujemanje
+            mask = dataframe[column].apply(normalize_string) == normalized_query
+        return dataframe[mask]
+    else:
+        # Globalno iskanje po vseh stolpcih
+        if match_type == "Delno ujemanje":
+            mask = dataframe.apply(
+                lambda row: row.astype(str).apply(normalize_string).str.contains(normalized_query).any(),
+                axis=1
+            )
+        else:  # Natančno ujemanje
+            mask = dataframe.apply(
+                lambda row: row.astype(str).apply(normalize_string) == normalized_query).any(axis=1)
+        return dataframe[mask]
 
-# App Title
+# -----------------------------
+# 4. Nastavitve aplikacije
+# -----------------------------
 st.title("Maj68-Search-Engine-alfa")
 
-# Normalize the dataset for autocomplete suggestions
+# Naloži podatke
+data = load_data()
+
+# Normalizacija podatkov za predlog
 normalized_data = data.applymap(normalize_string)
 
-# Search Type
-search_type = st.radio("Search Mode:", ["Global Search", "Field-Specific Search"])
+# Izbira načina iskanja
+search_type = st.radio("Način iskanja:", ["Globalno iskanje", "Iskanje po specifičnem stolpcu"])
 
-# Column Selection for Field-Specific Search
-if search_type == "Field-Specific Search":
-    column = st.selectbox("Choose column to search in:", data.columns)
+# Izbira stolpca samo, če je izbrano iskanje po specifičnem stolpcu
+if search_type == "Iskanje po specifičnem stolpcu":
+    column = st.selectbox("Izberi stolpec za iskanje:", data.columns)
 else:
     column = None
 
-# Input Query
-query_input = st.text_input("Start typing your query:")
+# Izbira tipa ujemanja
+match_type = st.radio("Tip ujemanja:", ["Delno ujemanje", "Natančno ujemanje"], index=0)
 
-# Generate Suggestions
+# Vnos poizvedbe
+query_input = st.text_input("Začni tipkati svojo poizvedbo:")
+
+# Generiranje predlogov
 if column:
-    # Get unique, normalized values from the selected column
+    # Pridobi unikatne, normalizirane vrednosti iz izbranega stolpca
     column_data = data[column].dropna().astype(str)
 else:
-    # Combine all columns into a single Series for global suggestions
+    # Združi vse stolpce v eno serijo za globalne predloge
     column_data = pd.Series(data.values.flatten()).dropna().astype(str)
 
-# Match query with suggestions
-if query_input:
-    normalized_query = normalize_string(query_input)
-    suggestions = column_data[column_data.apply(normalize_string).str.contains(normalized_query, na=False)].unique()
+# Funkcija za pridobivanje predlogov
+def get_suggestions(query, column_data, max_suggestions=10):
+    normalized_query = normalize_string(query)
+    if normalized_query:
+        mask = column_data.apply(normalize_string).str.contains(normalized_query, na=False)
+        suggestions = column_data[mask].unique()
+        return suggestions[:max_suggestions]
+    else:
+        return pd.Series([])
 
-    # Display suggestions below the search box
+# Prikaži predloge, če obstajajo
+if query_input:
+    suggestions = get_suggestions(query_input, column_data)
     if len(suggestions) > 0:
-        st.write("Suggestions:")
-        for suggestion in suggestions[:10]:  # Limit to top 10 suggestions
+        st.write("Predlogi:")
+        for suggestion in suggestions:
             st.write(f"- {suggestion}")
     else:
-        st.write("No suggestions available.")
+        st.write("Predlogi niso na voljo.")
 
-# Column Selection for Result Presentation
-columns_to_display = st.multiselect("Choose columns to display:", data.columns, default=data.columns)
+# Izbira stolpcev za prikaz rezultatov
+columns_to_display = st.multiselect("Izberi stolpce za prikaz:", data.columns, default=list(data.columns))
 
-# Search Logic
-def search_data(dataframe, query, column=None):
-    normalized_query = normalize_string(query)
-    if column:
-        # Normalize column values for comparison
-        return dataframe[dataframe[column].apply(normalize_string).str.contains(normalized_query, na=False)]
-    else:
-        # Global search across all columns with normalization
-        mask = dataframe.apply(
-            lambda row: any(normalized_query in normalize_string(str(value)) for value in row), axis=1
-        )
-        return dataframe[mask]
-
-# Perform the search
+# Izvedba iskanja
 if query_input:
-    results = search_data(data, query_input, column)
+    results = search_data(data, query_input, column, match_type)
     if not results.empty:
-        st.write(f"Found {len(results)} result(s):")
-        # Show results with only selected columns
+        st.write(f"Najdenih {len(results)} rezultatov:")
         st.dataframe(results[columns_to_display])
     else:
-        st.write("No results found.")
+        st.write("Ni najdenih rezultatov.")
