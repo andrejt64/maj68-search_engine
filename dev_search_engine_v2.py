@@ -4,6 +4,9 @@ import unicodedata
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
 from st_aggrid import JsCode
 
+# Nastavitev konfiguracije strani na široko
+st.set_page_config(layout="wide")
+
 # Normaliziraj nize, da obravnava "č", "ć", "c"; "š", "s"; in "ž", "z" kot enake
 def normalize_string(s):
     if not isinstance(s, str):
@@ -125,7 +128,7 @@ if query_input:
         gb = GridOptionsBuilder.from_dataframe(results_to_display)
         gb.configure_pagination(paginationAutoPageSize=True)  # Omogoči paginacijo
         gb.configure_side_bar()  # Omogoči stransko vrstico za filtriranje
-        gb.configure_default_column(editable=False, sortable=True, filter=True)  # Nastavitve stolpcev
+        gb.configure_default_column(editable=False, sortable=True, filter=True, resizable=True)  # Nastavitve stolpcev
         
         # Dodatne stilizacije (opcijsko)
         gb.configure_selection('single', use_checkbox=True, groupSelectsChildren=True)
@@ -140,10 +143,12 @@ if query_input:
             data_return_mode=DataReturnMode.FILTERED_AND_SORTED, 
             update_mode=GridUpdateMode.MODEL_CHANGED, 
             fit_columns_on_grid_load=True,
-            theme='balham',  # Lahko poskusite tudi 'light', 'dark', 'blue', 'fresh', 'material'
+            theme='material',  # Uporaba veljavne teme
             enable_enterprise_modules=False,
-            height=400,
-            width='100%',
+            height=800,  # Povečana višina za večje tabele
+            width='100%',  # Nastavitev širine na 100%
+            allow_unsafe_jscode=True,  # Dovoli varno JS kodo
+            reload_data=True,  # Omogoči ponovno nalaganje podatkov
         )
     else:
         st.write("Ni najdenih rezultatov.")
