@@ -1,6 +1,8 @@
 import pandas as pd
 import streamlit as st
 import unicodedata
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
+from st_aggrid import JsCode
 
 # Normaliziraj nize, da obravnava "č", "ć", "c"; "š", "s"; in "ž", "z" kot enake
 def normalize_string(s):
@@ -116,10 +118,32 @@ if query_input:
     exact = match_type == "Natančno ujemanje"
     results = search_data(data, query_input, column, exact)
     if not results.empty:
-        # Uporabi Streamlitovo `format`, da nadzoruješ prikaz numeričnih stolpcev
-        format_dict = {col: "{:.0f}" for col in ["year", "birth"] if col in results.columns}
+        # Izberi stolpce za prikaz
+        results_to_display = results[columns_to_display]
+
+        # Priprava nastavitev za AgGrid
+        gb = GridOptionsBuilder.from_dataframe(results_to_display)
+        gb.configure_pagination(paginationAutoPageSize=True)  # Omogoči paginacijo
+        gb.configure_side_bar()  # Omogoči stransko vrstico za filtriranje
+        gb.configure_default_column(editable=False, sortable=True, filter=True)  # Nastavitve stolpcev
+        
+        # Dodatne stilizacije (opcijsko)
+        gb.configure_selection('single', use_checkbox=True, groupSelectsChildren=True)
+        
+        grid_options = gb.build()
+
+        # Prikaz AgGrid tabele
         st.write(f"Najdenih {len(results)} rezultatov:")
-        st.dataframe(results[columns_to_display].style.format(format_dict))  # Prikaži s formatiranjem
+        AgGrid(
+            results_to_display,
+            gridOptions=grid_options,
+            data_return_mode=DataReturnMode.FILTERED_AND_SORTED, 
+            update_mode=GridUpdateMode.MODEL_CHANGED, 
+            fit_columns_on_grid_load=True,
+            theme='streamlit',  # Lahko poskusite tudi 'light', 'dark', 'blue', 'fresh', 'material'
+            enable_enterprise_modules=False,
+            height=400,
+            width='100%',
+        )
     else:
         st.write("Ni najdenih rezultatov.")
-
