@@ -93,7 +93,13 @@ if query_input:
                 lambda row: any(normalize_string(query_input) in normalize_string(str(value)) for value in row), axis=1
             )
         
-        column_data_filtered = data[mask]
+        # Za globalno iskanje, ustvarimo DataFrame z 'stolpec' in 'vrednost'
+        column_data = pd.DataFrame(
+            [(col, value) for col in data.columns for value in data[col].dropna()],
+            columns=["stolpec", "vrednost"]
+        )
+        
+        column_data_filtered = column_data[mask]
         column_data_filtered = column_data_filtered.drop_duplicates(subset="vrednost")
         suggestions = column_data_filtered.head(10)
     
