@@ -130,8 +130,8 @@ if query_input:
         gb.configure_side_bar()  # Omogoči stransko vrstico za filtriranje
         gb.configure_default_column(editable=False, sortable=True, filter=True, resizable=True)  # Nastavitve stolpcev
         
-        # Dodatne stilizacije (opcijsko)
-        gb.configure_selection('single', use_checkbox=True, groupSelectsChildren=True)
+        # Odstranitev izbire vrstic (potrditvenih polj)
+        # gb.configure_selection('single', use_checkbox=True, groupSelectsChildren=True)
         
         grid_options = gb.build()
 
@@ -143,7 +143,7 @@ if query_input:
             data_return_mode=DataReturnMode.FILTERED_AND_SORTED, 
             update_mode=GridUpdateMode.MODEL_CHANGED, 
             fit_columns_on_grid_load=True,
-            theme='streamlit',  # Uporaba veljavne teme
+            theme='material',  # Uporaba veljavne teme
             enable_enterprise_modules=False,
             height=800,  # Povečana višina za večje tabele
             width='100%',  # Nastavitev širine na 100%
