@@ -143,7 +143,7 @@ if query_input:
             data_return_mode=DataReturnMode.FILTERED_AND_SORTED, 
             update_mode=GridUpdateMode.MODEL_CHANGED, 
             fit_columns_on_grid_load=True,
-            theme='material',  # Uporaba veljavne teme
+            theme='streamlit',  # Uporaba veljavne teme
             enable_enterprise_modules=False,
             height=800,  # Povečana višina za večje tabele
             width='100%',  # Nastavitev širine na 100%
