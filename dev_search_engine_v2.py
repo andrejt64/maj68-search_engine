@@ -1,8 +1,6 @@
 import pandas as pd
 import streamlit as st
 import unicodedata
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
-from st_aggrid import JsCode
 
 # Nastavitev konfiguracije strani na široko
 st.set_page_config(layout="wide")
@@ -70,85 +68,4 @@ if query_input:
         if match_type == "Natančno ujemanje":
             filtered_data = data[column].dropna().astype(str).apply(normalize_string) == normalized_query
         else:  # Delno ujemanje
-            filtered_data = data[column].dropna().astype(str).apply(normalize_string).str.contains(normalized_query, na=False)
-        
-        column_data_filtered = data[column][filtered_data].astype(str).unique()
-        suggestions = pd.DataFrame({"stolpec": [column] * len(column_data_filtered), "vrednost": column_data_filtered})
-    else:
-        if match_type == "Natančno ujemanje":
-            mask = column_data["vrednost"].astype(str).apply(normalize_string) == normalized_query
-        else:  # Delno ujemanje
-            mask = column_data["vrednost"].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)
-        
-        column_data_filtered = column_data[mask]
-        column_data_filtered = column_data_filtered.drop_duplicates(subset="vrednost")
-        suggestions = column_data_filtered.head(10)
-    
-    if not suggestions.empty:
-        st.write("Predlogi:")
-        for i, row in suggestions.iterrows():
-            display_text = f"{row['vrednost']} (iz {row['stolpec']})"
-            if st.button(display_text, key=f"suggestion_{i}"):
-                st.session_state.query_input = row["vrednost"]
-                query_input = row["vrednost"]
-    else:
-        st.write("Predlogi niso na voljo.")
-
-# Izbira stolpcev za prikaz
-columns_to_display = st.multiselect("Izberi stolpce za prikaz:", valid_columns, default=valid_columns)
-
-# Funkcija za iskanje podatkov
-def search_data(dataframe, query, column=None, exact=False):
-    normalized_query = normalize_string(query)
-    if column:
-        col_data = dataframe[column].dropna().astype(str)
-        if exact:
-            return dataframe[col_data.apply(normalize_string) == normalized_query]
-        else:
-            return dataframe[col_data.apply(normalize_string).str.contains(normalized_query, na=False)]
-    else:
-        if exact:
-            mask = dataframe.apply(
-                lambda row: any(normalized_query == normalize_string(str(value)) for value in row), axis=1
-            )
-        else:
-            mask = dataframe.apply(
-                lambda row: any(normalized_query in normalize_string(str(value)) for value in row), axis=1
-            )
-        return dataframe[mask]
-
-if query_input:
-    exact = match_type == "Natančno ujemanje"
-    results = search_data(data, query_input, column, exact)
-    if not results.empty:
-        # Izberi stolpce za prikaz
-        results_to_display = results[columns_to_display]
-
-        # Priprava nastavitev za AgGrid
-        gb = GridOptionsBuilder.from_dataframe(results_to_display)
-        gb.configure_pagination(paginationAutoPageSize=True)  # Omogoči paginacijo
-        gb.configure_side_bar()  # Omogoči stransko vrstico za filtriranje
-        gb.configure_default_column(editable=False, sortable=True, filter=True, resizable=True)  # Nastavitve stolpcev
-        
-        # Odstranitev izbire vrstic (potrditvenih polj)
-        # gb.configure_selection('single', use_checkbox=True, groupSelectsChildren=True)
-        
-        grid_options = gb.build()
-
-        # Prikaz AgGrid tabele
-        st.write(f"Najdenih {len(results)} rezultatov:")
-        AgGrid(
-            results_to_display,
-            gridOptions=grid_options,
-            data_return_mode=DataReturnMode.FILTERED_AND_SORTED, 
-            update_mode=GridUpdateMode.MODEL_CHANGED, 
-            fit_columns_on_grid_load=True,
-            theme='material',  # Uporaba veljavne teme
-            enable_enterprise_modules=False,
-            height=800,  # Povečana višina za večje tabele
-            width='100%',  # Nastavitev širine na 100%
-            allow_unsafe_jscode=True,  # Dovoli varno JS kodo
-            reload_data=True,  # Omogoči ponovno nalaganje podatkov
-        )
-    else:
-        st.write("Ni najdenih rezultatov.")
+            filtered_data = data[column].dropna().astype(str).apply(normalize_string).str.contains(normalized_query, na=
