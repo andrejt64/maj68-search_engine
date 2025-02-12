@@ -68,7 +68,7 @@ rename_dict = {
     "birth": "leto rojstva",
     "text_type": "zvrst",
     "year": "leto izdaje",
-    "character": "kanonična oblika"
+    "character": "protagonist"
 }
 
 # Normaliziraj podatke za predloge za samodejno dopolnjevanje
@@ -90,7 +90,7 @@ match_type = st.radio("Vrsta ujemanja:", ["Delno ujemanje", "Natančno ujemanje"
 if "query_input" not in st.session_state:
     st.session_state.query_input = ""
 
-query_input = st.text_input("Iskanje:", value=st.session_state.query_input)
+query_input = st.text_input("Začni vnašati poizvedbo:", value=st.session_state.query_input)
 
 def search_data(dataframe, query, column=None, exact=False):
     normalized_query = normalize_string(query)
@@ -153,4 +153,15 @@ if query_input:
             # Pridobi naslov dela iz stolpca "title_(year)" (ki se prikaže kot "naslov")
             title_val = row["title_(year)"] if "title_(year)" in row.index else ""
             
-            # Oblikuj expander z dod
+            # Oblikuj expander z dodatnimi informacijami, pri čemer v oklepaju prikaži tudi naslov dela
+            expander = st.expander(f"{canonical} ({title_val})")
+            expander.write(f"Variacije imen: {', '.join(variations)}")
+            comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
+            expander.write(f"Komentar: {comment_text}")
+            
+            wiki_link = row['real_link']
+            # Povezavo prikaži samo, če wiki_link vsebuje veljaven URL (npr. se začne z "http")
+            if isinstance(wiki_link, str) and wiki_link.strip().startswith("http"):
+                expander.markdown(f"[Več informacij na Wikipediji]({wiki_link.strip()})")
+    else:
+        st.write("Ni najdenih rezultatov.")
