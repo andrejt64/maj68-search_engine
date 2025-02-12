@@ -26,7 +26,6 @@ def load_data():
     # Ne prepisujemo 'real_char'; ohranimo izvirne vrednosti.
     # Prepend 'character' k 'comment'
     df['comment'] = df.apply(lambda row: f"{row['character']}: {row['comment']}" if pd.notna(row['comment']) else row['comment'], axis=1)
-    
     return df
 
 data = load_data()
@@ -87,13 +86,9 @@ def search_data(dataframe, query, column=None, exact=False):
         # Če iščemo po protagonistih, poišči samo po 'character' (ignoriramo 'real_char')
         if column == "character":
             if exact:
-                mask = (
-                    dataframe['character'].astype(str).apply(normalize_string) == normalized_query
-                )
+                mask = dataframe['character'].astype(str).apply(normalize_string) == normalized_query
             else:
-                mask = (
-                    dataframe['character'].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)
-                )
+                mask = dataframe['character'].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)
             return dataframe[mask]
         else:
             col_data = dataframe[column].dropna().astype(str)
@@ -103,13 +98,9 @@ def search_data(dataframe, query, column=None, exact=False):
                 return dataframe[col_data.apply(normalize_string).str.contains(normalized_query, na=False)]
     else:
         if exact:
-            mask = dataframe.apply(
-                lambda row: any(normalized_query == normalize_string(str(value)) for value in row), axis=1
-            )
+            mask = dataframe.apply(lambda row: any(normalized_query == normalize_string(str(value)) for value in row), axis=1)
         else:
-            mask = dataframe.apply(
-                lambda row: any(normalized_query in normalize_string(str(value)) for value in row), axis=1
-            )
+            mask = dataframe.apply(lambda row: any(normalized_query in normalize_string(str(value)) for value in row), axis=1)
         return dataframe[mask]
 
 if query_input:
@@ -132,7 +123,9 @@ if query_input:
         for _, row in results_unique.iterrows():
             # Uporabimo vedno vrednost iz 'character' kot kanonično ime
             canonical = row['character']
-            mask = data['character'].astype(str).apply(normalize_string) == normalize_string(canonical)
+            # Filter za variacije: samo tiste zapise, kjer se 'character' ujema in kjer je tekst (title) enak trenutnemu zapisu.
+            mask = (data['character'].astype(str).apply(normalize_string) == normalize_string(canonical)) & \
+                   (data["title_(year)"] == row["title_(year)"])
             
             # Zberi variacije imen iz stolpcev 'lemma' in 'surface'
             lemmas = data.loc[mask, 'lemma'].dropna().astype(str).unique()
