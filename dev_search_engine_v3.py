@@ -140,19 +140,17 @@ if query_input:
             variations = set(list(lemmas) + list(surfaces))
             
             # Pridobi naslov dela iz stolpca "title_(year)" (ki se prikaže kot "naslov")
-            if "title_(year)" in row.index:
-                title_val = row["title_(year)"]
-            else:
-                title_val = ""
+            title_val = row["title_(year)"] if "title_(year)" in row.index else ""
             
-            # Oblikuj okence z dodatnimi informacijami, pri čemer v oklepaju prikaži tudi naslov dela
+            # Oblikuj expander z dodatnimi informacijami, pri čemer v oklepaju prikaži tudi naslov dela
             expander = st.expander(f"{canonical} ({title_val})")
             expander.write(f"Variacije imen: {', '.join(variations)}")
             comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
             expander.write(f"Komentar: {comment_text}")
             
             wiki_link = row['real_link']
-            if wiki_link and str(wiki_link).strip() != "":
-                expander.markdown(f"[Več informacij na Wikipediji]({wiki_link})")
+            # Prikaži Wikipedia povezavo samo, če je v wiki_link veljaven URL (npr. se začne z http)
+            if isinstance(wiki_link, str) and wiki_link.strip().startswith("http"):
+                expander.markdown(f"[Več informacij na Wikipediji]({wiki_link.strip()})")
     else:
         st.write("Ni najdenih rezultatov.")
