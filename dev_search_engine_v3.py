@@ -15,7 +15,7 @@ def normalize_string(s):
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_excel("LIST_type=person_2025-02-12-iskalnik.xlsx", sheet_name="Sheet1")  # Updated to correct sheet
+        df = pd.read_excel("LIST_type=person_search-engine.xlsx", sheet_name="Sheet1")  # Updated to correct sheet
     except ValueError:
         st.error("Napaka: Delovni list 'Sheet1' ni najden v datoteki.")
         return pd.DataFrame()
@@ -88,10 +88,8 @@ if query_input:
     exact = match_type == "Natančno ujemanje"
     results = search_data(data, query_input, column, exact)
     if not results.empty:
-        # Uporabi Streamlitovo `format`, da nadzoruješ prikaz numeričnih stolpcev
-        format_dict = {col: "{:.0f}" for col in ["year", "birth"] if col in results.columns}
         st.write(f"Najdenih {len(results)} rezultatov:")
-        st.dataframe(results[valid_columns].style.format(format_dict))  # Prikaži s formatiranjem
+        st.dataframe(results[valid_columns])  # Removed formatting to avoid errors with multi-year values
         
         # Prikaz dodatnih informacij ob kliku na znak
         for _, row in results.iterrows():
