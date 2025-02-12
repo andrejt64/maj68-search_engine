@@ -36,11 +36,29 @@ if "year" in data.columns:
 if "birth" in data.columns:
     data["birth"] = data["birth"].apply(lambda x: '; '.join([str(int(y)) for y in str(x).split(';') if y.strip().isdigit()]) if pd.notna(x) else "")
 
-# Očisti imena stolpcev, da odstraniš neveljavne možnosti
-valid_columns = [col for col in data.columns if col.strip() != "#"]  # Izključi stolpce z le "#"
+# Definiraj seznam stolpcev, ki jih NE želimo prikazovati in ki ne smejo biti na voljo kot možnosti iskanja
+excluded_columns = ['id', 'surface', 'lemma', 'comment', 'real_char', 'real_link']
+
+# Očisti imena stolpcev, da odstraniš neveljavne možnosti (tudi tiste, ki so samo "#")
+valid_columns = [col for col in data.columns if col not in excluded_columns and col.strip() != "#"]
+
+# Slovenski prevodi stolpcev za prikaz:
+rename_dict = {
+    "title_(year)": "naslov",
+    "text_id": "id teksta",
+    "author": "avtor",
+    "publication": "publikacija",
+    "gender": "spol",
+    "subtype": "podtip",
+    "type": "tip",
+    "birth": "leto rojstva",
+    "text_type": "zvrst",
+    "year": "leto izdaje",
+    "character": "protagonist"
+}
 
 # Naslov aplikacije
-st.title("Maj68-Iskalnik")
+st.title("Iskalnik po bazi lastnih imen korpusa Maj68")
 
 # Normaliziraj podatke za predloge za samodejno dopolnjevanje
 normalized_data = data.applymap(normalize_string)
@@ -48,7 +66,7 @@ normalized_data = data.applymap(normalize_string)
 # Tip iskanja
 search_type = st.radio("Način iskanja:", ["Globalno iskanje", "Iskanje v določenem polju"])
 
-# Izbira stolpca za iskanje v določenem polju
+# Če je iskanje v določenem polju, ponudi izbor stolpca med tistimi, ki jih želimo prikazati
 if search_type == "Iskanje v določenem polju":
     column = st.selectbox("Izberi stolpec za iskanje:", valid_columns)
 else:
@@ -89,11 +107,21 @@ if query_input:
     results = search_data(data, query_input, column, exact)
     if not results.empty:
         st.write(f"Najdenih {len(results)} rezultatov:")
-        st.dataframe(results[valid_columns])  # Removed formatting to avoid errors with multi-year values
         
-        # Prikaz dodatnih informacij ob kliku na znak
-        for _, row in results.iterrows():
+        # Prikaz rezultatov: uporabimo samo dovoljene stolpce in jih preimenujemo v slovenščino
+        display_results = results[valid_columns].rename(columns=rename_dict)
+        st.dataframe(display_results)
+        
+        # Če imamo več zadetkov istega 'text_id', prikažemo le enega
+        if 'text_id' in results.columns:
+            results_unique = results.drop_duplicates(subset=["text_id"])
+        else:
+            results_unique = results
+
+        # Prikaz dodatnih informacij ob kliku na posamezni znak
+        for _, row in results_unique.iterrows():
             char_name = row['character']
+            # Poišči variacije imen iz originalnih podatkov (tudi če niso prikazane)
             variations = data[data['character'] == char_name]['surface'].dropna().unique()
             wiki_link = row['real_link']
             comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
