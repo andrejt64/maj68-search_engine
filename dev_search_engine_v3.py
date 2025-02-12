@@ -20,7 +20,10 @@ with col1:
         "[DARIAH.SI](http://dariah.si/)."
     )
 with col2:
-    st.image("https://github.com/andrejt64/maj68-search_engine/blob/main/DARIAH-SI_logo_CMYK.jpg", use_column_width=True)
+    st.image(
+        "https://github.com/andrejt64/maj68-search_engine/blob/main/DARIAH-SI_logo_CMYK.jpg",
+        use_container_width=True
+    )
 
 # Naslednji naslov aplikacije
 st.title("Iskalnik po bazi lastnih imen korpusa Maj68")
