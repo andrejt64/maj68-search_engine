@@ -3,7 +3,7 @@ import streamlit as st
 import unicodedata
 
 # Nastavi konfiguracijo strani na široko postavitev
-st.set_page_config(page_title="Maj68-Iskalnik", layout="wide")
+st.set_page_config(page_title="Maj68-Iskalnik")
 
 # Normaliziraj nize, da obravnava "č", "ć", "c"; "š", "s"; in "ž", "z" kot enake
 def normalize_string(s):
