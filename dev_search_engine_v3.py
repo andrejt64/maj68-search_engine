@@ -20,10 +20,7 @@ def load_data():
         st.error("Napaka: Delovni list 'Sheet1' ni najden v datoteki.")
         return pd.DataFrame()
     
-    # Če obstaja entry v 'real_char', obdrži 'character' za variacije
-    # (torej ne prepisujemo 'real_char' z 'character', kot smo prej delali)
-    # df.loc[df['real_char'].notna(), 'real_char'] = df['character']
-    
+    # Ne prepisujemo 'real_char' z 'character' – obdržimo originalne vrednosti.
     # Prepend 'character' k 'comment'
     df['comment'] = df.apply(lambda row: f"{row['character']}: {row['comment']}" if pd.notna(row['comment']) else row['comment'], axis=1)
     
@@ -38,7 +35,7 @@ if "birth" in data.columns:
     data["birth"] = data["birth"].apply(lambda x: '; '.join([str(int(y)) for y in str(x).split(';') if y.strip().isdigit()]) if pd.notna(x) else "")
 
 # Definiraj seznam stolpcev, ki jih NE želimo prikazovati in ki ne smejo biti na voljo kot možnosti iskanja
-excluded_columns = ['id', 'surface', 'lemma', 'comment', 'real_char', 'real_link']
+excluded_columns = ['id', 'lemma', 'surface', 'comment', 'real_char', 'real_link']
 
 # Očisti imena stolpcev, da odstraniš neveljavne možnosti (tudi tiste, ki so samo "#")
 valid_columns = [col for col in data.columns if col not in excluded_columns and col.strip() != "#"]
@@ -137,14 +134,18 @@ if query_input:
 
         # Prikaz dodatnih informacij ob kliku na posamezni zapis
         for _, row in results_unique.iterrows():
-            # Določimo kanonično obliko imena: če obstaja entry v 'real_char', jo uporabimo
+            # Določimo kanonično obliko imena: če obstaja entry v 'real_char', ga uporabimo kot glavni naslov
             if pd.notna(row.get('real_char')) and str(row.get('real_char')).strip() != "":
                 canonical = row['real_char']
-                # Poišči vse iteracije iz 'character', ki pripadajo tej kanonični obliki
-                variations = data[data['real_char'].astype(str).apply(normalize_string) == normalize_string(canonical)]['character'].dropna().unique()
+                mask = data['real_char'].astype(str).apply(normalize_string) == normalize_string(canonical)
             else:
                 canonical = row['character']
-                variations = data[data['character'].astype(str).apply(normalize_string) == normalize_string(canonical)]['character'].dropna().unique()
+                mask = data['character'].astype(str).apply(normalize_string) == normalize_string(canonical)
+            
+            # Zberemo variacije imen iz stolpcev 'lemma' in 'surface'
+            lemmas = data.loc[mask, 'lemma'].dropna().astype(str).unique()
+            surfaces = data.loc[mask, 'surface'].dropna().astype(str).unique()
+            variations = set(list(lemmas) + list(surfaces))
             
             wiki_link = row['real_link']
             comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
