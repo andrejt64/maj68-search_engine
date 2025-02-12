@@ -78,7 +78,7 @@ match_type = st.radio("Vrsta ujemanja:", ["Delno ujemanje", "Natančno ujemanje"
 if "query_input" not in st.session_state:
     st.session_state.query_input = ""
 
-query_input = st.text_input("Začni vnašati poizvedbo:", value=st.session_state.query_input)
+query_input = st.text_input("Išči:", value=st.session_state.query_input)
 
 def search_data(dataframe, query, column=None, exact=False):
     normalized_query = normalize_string(query)
