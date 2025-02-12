@@ -11,6 +11,20 @@ def normalize_string(s):
     s = unicodedata.normalize('NFKD', s)
     return ''.join(c for c in s if not unicodedata.combining(c)).lower()
 
+# Dodaj glavo s disclaimerjem in logotipom: disclaimer levo, logotip desno
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.markdown(
+        "Projekt LIMO68 ali (Nadgradnja korpusa modernističnih besedil in izdelava podatkovne zbirke lastnih imen) je financirala "
+        "Javna agencija za znanstvenoraziskovalno in inovacijsko dejavnost Republike Slovenije v okviru raziskovalne infrastrukture "
+        "[DARIAH.SI](http://dariah.si/)."
+    )
+with col2:
+    st.image("https://github.com/andrejt64/maj68-search_engine/blob/main/DARIAH-SI_logo_CMYK.jpg", use_column_width=True)
+
+# Naslednji naslov aplikacije
+st.title("Iskalnik po bazi lastnih imen korpusa Maj68")
+
 # Naloži podatke z uporabo st.cache_data za učinkovito predpomnjenje
 @st.cache_data
 def load_data():
@@ -54,11 +68,8 @@ rename_dict = {
     "birth": "leto rojstva",
     "text_type": "zvrst",
     "year": "leto izdaje",
-    "character": "protagonist"
+    "character": "kanonična oblika"
 }
-
-# Naslov aplikacije
-st.title("Iskalnik po bazi lastnih imen korpusa Maj68")
 
 # Normaliziraj podatke za predloge za samodejno dopolnjevanje
 normalized_data = data.applymap(normalize_string)
@@ -79,7 +90,7 @@ match_type = st.radio("Vrsta ujemanja:", ["Delno ujemanje", "Natančno ujemanje"
 if "query_input" not in st.session_state:
     st.session_state.query_input = ""
 
-query_input = st.text_input("Začni vnašati poizvedbo:", value=st.session_state.query_input)
+query_input = st.text_input("Iskanje:", value=st.session_state.query_input)
 
 def search_data(dataframe, query, column=None, exact=False):
     normalized_query = normalize_string(query)
@@ -142,15 +153,4 @@ if query_input:
             # Pridobi naslov dela iz stolpca "title_(year)" (ki se prikaže kot "naslov")
             title_val = row["title_(year)"] if "title_(year)" in row.index else ""
             
-            # Oblikuj expander z dodatnimi informacijami, pri čemer v oklepaju prikaži tudi naslov dela
-            expander = st.expander(f"{canonical} ({title_val})")
-            expander.write(f"Variacije imen: {', '.join(variations)}")
-            comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
-            expander.write(f"Komentar: {comment_text}")
-            
-            wiki_link = row['real_link']
-            # Prikaži Wikipedia povezavo samo, če je v wiki_link veljaven URL (npr. se začne z http)
-            if isinstance(wiki_link, str) and wiki_link.strip().startswith("http"):
-                expander.markdown(f"[Več informacij na Wikipediji]({wiki_link.strip()})")
-    else:
-        st.write("Ni najdenih rezultatov.")
+            # Oblikuj expander z dod
