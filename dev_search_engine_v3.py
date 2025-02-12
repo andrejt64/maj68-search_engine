@@ -20,10 +20,11 @@ def load_data():
         st.error("Napaka: Delovni list 'Sheet1' ni najden v datoteki.")
         return pd.DataFrame()
     
-    # Replace 'real_char' with 'character' where applicable
-    df.loc[df['real_char'].notna(), 'real_char'] = df['character']
+    # Če obstaja entry v 'real_char', obdrži 'character' za variacije
+    # (torej ne prepisujemo 'real_char' z 'character', kot smo prej delali)
+    # df.loc[df['real_char'].notna(), 'real_char'] = df['character']
     
-    # Prepend 'character' to 'comment'
+    # Prepend 'character' k 'comment'
     df['comment'] = df.apply(lambda row: f"{row['character']}: {row['comment']}" if pd.notna(row['comment']) else row['comment'], axis=1)
     
     return df
@@ -66,7 +67,7 @@ normalized_data = data.applymap(normalize_string)
 # Tip iskanja
 search_type = st.radio("Način iskanja:", ["Globalno iskanje", "Iskanje v določenem polju"])
 
-# Če je iskanje v določenem polju, ponudi izbor stolpca med tistimi, ki jih želimo prikazati
+# Če je iskanje v določenem polju, ponudi izbor stolpca med dovoljeni stolpci
 if search_type == "Iskanje v določenem polju":
     column = st.selectbox("Izberi stolpec za iskanje:", valid_columns)
 else:
@@ -86,11 +87,27 @@ query_input = st.text_input("Začni vnašati poizvedbo:", value=st.session_state
 def search_data(dataframe, query, column=None, exact=False):
     normalized_query = normalize_string(query)
     if column:
-        col_data = dataframe[column].dropna().astype(str)
-        if exact:
-            return dataframe[col_data.apply(normalize_string) == normalized_query]
+        # Če iščemo po protagonistih, poišči tako po 'character' kot tudi po 'real_char'
+        if column == "character":
+            if exact:
+                mask = (
+                    dataframe['character'].astype(str).apply(normalize_string) == normalized_query
+                ) | (
+                    dataframe['real_char'].astype(str).apply(normalize_string) == normalized_query
+                )
+            else:
+                mask = (
+                    dataframe['character'].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)
+                ) | (
+                    dataframe['real_char'].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)
+                )
+            return dataframe[mask]
         else:
-            return dataframe[col_data.apply(normalize_string).str.contains(normalized_query, na=False)]
+            col_data = dataframe[column].dropna().astype(str)
+            if exact:
+                return dataframe[col_data.apply(normalize_string) == normalized_query]
+            else:
+                return dataframe[col_data.apply(normalize_string).str.contains(normalized_query, na=False)]
     else:
         if exact:
             mask = dataframe.apply(
@@ -118,15 +135,21 @@ if query_input:
         else:
             results_unique = results
 
-        # Prikaz dodatnih informacij ob kliku na posamezni znak
+        # Prikaz dodatnih informacij ob kliku na posamezni zapis
         for _, row in results_unique.iterrows():
-            char_name = row['character']
-            # Poišči variacije imen iz originalnih podatkov (tudi če niso prikazane)
-            variations = data[data['character'] == char_name]['surface'].dropna().unique()
+            # Določimo kanonično obliko imena: če obstaja entry v 'real_char', jo uporabimo
+            if pd.notna(row.get('real_char')) and str(row.get('real_char')).strip() != "":
+                canonical = row['real_char']
+                # Poišči vse iteracije iz 'character', ki pripadajo tej kanonični obliki
+                variations = data[data['real_char'].astype(str).apply(normalize_string) == normalize_string(canonical)]['character'].dropna().unique()
+            else:
+                canonical = row['character']
+                variations = data[data['character'].astype(str).apply(normalize_string) == normalize_string(canonical)]['character'].dropna().unique()
+            
             wiki_link = row['real_link']
             comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
             
-            expander = st.expander(f"{char_name}")
+            expander = st.expander(f"{canonical}")
             expander.write(f"Variacije imen: {', '.join(variations)}")
             expander.write(f"Komentar: {comment_text}")
             
