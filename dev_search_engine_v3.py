@@ -15,12 +15,12 @@ def normalize_string(s):
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_excel("LIST_type=person_2025-02-12-iskalnik.xlsx", sheet_name="Sheet1")  # Updated to correct sheet
+        df = pd.read_excel("LIST_type=person_2025-02-12-iskalnik.xlsx", sheet_name="Sheet1")
     except ValueError:
         st.error("Napaka: Delovni list 'Sheet1' ni najden v datoteki.")
         return pd.DataFrame()
     
-    # Ne prepisujemo 'real_char' z 'character' – obdržimo originalne vrednosti.
+    # Ne prepisujemo 'real_char' z 'character'; ohranimo izvirne vrednosti.
     # Prepend 'character' k 'comment'
     df['comment'] = df.apply(lambda row: f"{row['character']}: {row['comment']}" if pd.notna(row['comment']) else row['comment'], axis=1)
     
@@ -32,7 +32,9 @@ data = load_data()
 if "year" in data.columns:
     data["year"] = pd.to_numeric(data["year"], errors="coerce").fillna("").astype(str)
 if "birth" in data.columns:
-    data["birth"] = data["birth"].apply(lambda x: '; '.join([str(int(y)) for y in str(x).split(';') if y.strip().isdigit()]) if pd.notna(x) else "")
+    data["birth"] = data["birth"].apply(
+        lambda x: '; '.join([str(int(y)) for y in str(x).split(';') if y.strip().isdigit()]) if pd.notna(x) else ""
+    )
 
 # Definiraj seznam stolpcev, ki jih NE želimo prikazovati in ki ne smejo biti na voljo kot možnosti iskanja
 excluded_columns = ['id', 'lemma', 'surface', 'comment', 'real_char', 'real_link']
@@ -64,7 +66,7 @@ normalized_data = data.applymap(normalize_string)
 # Tip iskanja
 search_type = st.radio("Način iskanja:", ["Globalno iskanje", "Iskanje v določenem polju"])
 
-# Če je iskanje v določenem polju, ponudi izbor stolpca med dovoljeni stolpci
+# Če je iskanje v določenem polju, ponudi izbor stolpca med dovoljenimi stolpci
 if search_type == "Iskanje v določenem polju":
     column = st.selectbox("Izberi stolpec za iskanje:", valid_columns)
 else:
@@ -77,10 +79,8 @@ match_type = st.radio("Vrsta ujemanja:", ["Delno ujemanje", "Natančno ujemanje"
 if "query_input" not in st.session_state:
     st.session_state.query_input = ""
 
-# Prikaz iskalnega polja
 query_input = st.text_input("Začni vnašati poizvedbo:", value=st.session_state.query_input)
 
-# Funkcija za iskanje podatkov
 def search_data(dataframe, query, column=None, exact=False):
     normalized_query = normalize_string(query)
     if column:
@@ -132,28 +132,42 @@ if query_input:
         else:
             results_unique = results
 
-        # Prikaz dodatnih informacij ob kliku na posamezni zapis
+        # Prikaz dodatnih informacij za vsak unikatni zapis
         for _, row in results_unique.iterrows():
-            # Določimo kanonično obliko imena: če obstaja entry v 'real_char', ga uporabimo kot glavni naslov
+            # Določitev kanonične oblike imena:
+            # Če ima trenutni zapis veljaven 'real_char', ga uporabimo,
+            # sicer poiščemo med podobnimi, če kateri ima 'real_char'
             if pd.notna(row.get('real_char')) and str(row.get('real_char')).strip() != "":
                 canonical = row['real_char']
                 mask = data['real_char'].astype(str).apply(normalize_string) == normalize_string(canonical)
             else:
                 canonical = row['character']
-                mask = data['character'].astype(str).apply(normalize_string) == normalize_string(canonical)
+                similar = data[data['character'].astype(str).apply(normalize_string) == normalize_string(row['character'])]
+                real_chars = similar['real_char'].dropna().astype(str)
+                if not real_chars.empty:
+                    canonical = real_chars.iloc[0]
+                    mask = data['real_char'].astype(str).apply(normalize_string) == normalize_string(canonical)
+                else:
+                    mask = data['character'].astype(str).apply(normalize_string) == normalize_string(canonical)
             
-            # Zberemo variacije imen iz stolpcev 'lemma' in 'surface'
+            # Zberi variacije imen iz stolpcev 'lemma' in 'surface'
             lemmas = data.loc[mask, 'lemma'].dropna().astype(str).unique()
             surfaces = data.loc[mask, 'surface'].dropna().astype(str).unique()
             variations = set(list(lemmas) + list(surfaces))
             
-            wiki_link = row['real_link']
-            comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
+            # Pridobi naslov dela iz stolpca "title_(year)" (ki se prikaže kot "naslov")
+            if "title_(year)" in row.index:
+                title_val = row["title_(year)"]
+            else:
+                title_val = ""
             
-            expander = st.expander(f"{canonical}")
+            # Oblikuj okence z dodatnimi informacijami, pri čemer v oklepaju prikaži tudi naslov dela
+            expander = st.expander(f"{canonical} ({title_val})")
             expander.write(f"Variacije imen: {', '.join(variations)}")
+            comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
             expander.write(f"Komentar: {comment_text}")
             
+            wiki_link = row['real_link']
             if wiki_link:
                 expander.markdown(f"[Več informacij na Wikipediji]({wiki_link})")
     else:
