@@ -11,19 +11,7 @@ def normalize_string(s):
     s = unicodedata.normalize('NFKD', s)
     return ''.join(c for c in s if not unicodedata.combining(c)).lower()
 
-# Dodaj glavo s disclaimerjem in logotipom: disclaimer levo, logotip desno
-col1, col2 = st.columns([3, 1])
-with col1:
-    st.markdown(
-        "Projekt LIMO68 ali (Nadgradnja korpusa modernističnih besedil in izdelava podatkovne zbirke lastnih imen) je financirala "
-        "Javna agencija za znanstvenoraziskovalno in inovacijsko dejavnost Republike Slovenije v okviru raziskovalne infrastrukture "
-        "[DARIAH.SI](http://dariah.si/)."
-    )
-with col2:
-    st.image(
-        "https://raw.githubusercontent.com/andrejt64/maj68-search_engine/main/DARIAH-SI_logo_CMYK.jpg",
-        use_container_width=True
-    )
+
 
 # Naslednji naslov aplikacije
 st.title("Iskalnik po bazi lastnih imen korpusa Maj68")
@@ -168,3 +156,17 @@ if query_input:
                 expander.markdown(f"[Več informacij na Wikipediji]({wiki_link.strip()})")
     else:
         st.write("Ni najdenih rezultatov.")
+
+# Dodaj footer z disclaimerjem in logotipom: disclaimer levo, logotip desno
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.markdown(
+        "Projekt LIMO68 je financirala Javna agencija za znanstvenoraziskovalno in "
+        "inovacijsko dejavnost Republike Slovenije v okviru raziskovalne infrastrukture "
+        "[DARIAH.SI](http://dariah.si/)."
+    )
+with col2:
+    st.image(
+        "https://raw.githubusercontent.com/andrejt64/maj68-search_engine/main/DARIAH-SI_logo_CMYK.jpg",
+        use_container_width=True
+    )
