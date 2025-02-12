@@ -15,7 +15,7 @@ def normalize_string(s):
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_excel("LIST_type=person_search-engine.xlsx", sheet_name="Sheet1")  # Updated to correct sheet
+        df = pd.read_excel("LIST_type=person_2025-02-12-iskalnik.xlsx", sheet_name="Sheet1")  # Updated to correct sheet
     except ValueError:
         st.error("Napaka: Delovni list 'Sheet1' ni najden v datoteki.")
         return pd.DataFrame()
