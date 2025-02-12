@@ -32,9 +32,9 @@ data = load_data()
 
 # Zagotovi pravilno prikazovanje stolpcev 'year' in 'birth'
 if "year" in data.columns:
-    data["year"] = data["year"].apply(lambda x: int(x) if pd.notna(x) else "")
+    data["year"] = pd.to_numeric(data["year"], errors="coerce").fillna("").astype(str)
 if "birth" in data.columns:
-    data["birth"] = data["birth"].apply(lambda x: int(x) if pd.notna(x) else "")
+    data["birth"] = data["birth"].apply(lambda x: '; '.join([str(int(y)) for y in str(x).split(';') if y.strip().isdigit()]) if pd.notna(x) else "")
 
 # Očisti imena stolpcev, da odstraniš neveljavne možnosti
 valid_columns = [col for col in data.columns if col.strip() != "#"]  # Izključi stolpce z le "#"
