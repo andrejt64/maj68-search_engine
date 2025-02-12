@@ -14,7 +14,7 @@ def normalize_string(s):
 # Naloži podatke z uporabo st.cache_data za učinkovito predpomnjenje
 @st.cache_data
 def load_data():
-    df = pd.read_excel("LIST_type=person_search-engine.xlsx", sheet_name="Sheet2")
+    df = pd.read_excel("LIST_type=person_2025-02-12-iskalnik.xlsx", sheet_name="Sheet2")
     
     # Replace 'real_char' with 'character' where applicable
     df.loc[df['real_char'].notna(), 'real_char'] = df['character']
