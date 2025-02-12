@@ -20,7 +20,7 @@ def load_data():
         st.error("Napaka: Delovni list 'Sheet1' ni najden v datoteki.")
         return pd.DataFrame()
     
-    # Ne prepisujemo 'real_char' z 'character'; ohranimo izvirne vrednosti.
+    # Ne prepisujemo 'real_char'; ohranimo izvirne vrednosti.
     # Prepend 'character' k 'comment'
     df['comment'] = df.apply(lambda row: f"{row['character']}: {row['comment']}" if pd.notna(row['comment']) else row['comment'], axis=1)
     
@@ -84,19 +84,15 @@ query_input = st.text_input("Začni vnašati poizvedbo:", value=st.session_state
 def search_data(dataframe, query, column=None, exact=False):
     normalized_query = normalize_string(query)
     if column:
-        # Če iščemo po protagonistih, poišči tako po 'character' kot tudi po 'real_char'
+        # Če iščemo po protagonistih, poišči samo po 'character' (ignoriramo 'real_char')
         if column == "character":
             if exact:
                 mask = (
                     dataframe['character'].astype(str).apply(normalize_string) == normalized_query
-                ) | (
-                    dataframe['real_char'].astype(str).apply(normalize_string) == normalized_query
                 )
             else:
                 mask = (
                     dataframe['character'].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)
-                ) | (
-                    dataframe['real_char'].astype(str).apply(normalize_string).str.contains(normalized_query, na=False)
                 )
             return dataframe[mask]
         else:
@@ -134,21 +130,9 @@ if query_input:
 
         # Prikaz dodatnih informacij za vsak unikatni zapis
         for _, row in results_unique.iterrows():
-            # Določitev kanonične oblike imena:
-            # Če ima trenutni zapis veljaven 'real_char', ga uporabimo,
-            # sicer poiščemo med podobnimi, če kateri ima 'real_char'
-            if pd.notna(row.get('real_char')) and str(row.get('real_char')).strip() != "":
-                canonical = row['real_char']
-                mask = data['real_char'].astype(str).apply(normalize_string) == normalize_string(canonical)
-            else:
-                canonical = row['character']
-                similar = data[data['character'].astype(str).apply(normalize_string) == normalize_string(row['character'])]
-                real_chars = similar['real_char'].dropna().astype(str)
-                if not real_chars.empty:
-                    canonical = real_chars.iloc[0]
-                    mask = data['real_char'].astype(str).apply(normalize_string) == normalize_string(canonical)
-                else:
-                    mask = data['character'].astype(str).apply(normalize_string) == normalize_string(canonical)
+            # Uporabimo vedno vrednost iz 'character' kot kanonično ime
+            canonical = row['character']
+            mask = data['character'].astype(str).apply(normalize_string) == normalize_string(canonical)
             
             # Zberi variacije imen iz stolpcev 'lemma' in 'surface'
             lemmas = data.loc[mask, 'lemma'].dropna().astype(str).unique()
@@ -168,7 +152,7 @@ if query_input:
             expander.write(f"Komentar: {comment_text}")
             
             wiki_link = row['real_link']
-            if wiki_link:
+            if wiki_link and str(wiki_link).strip() != "":
                 expander.markdown(f"[Več informacij na Wikipediji]({wiki_link})")
     else:
         st.write("Ni najdenih rezultatov.")
