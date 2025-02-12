@@ -11,8 +11,6 @@ def normalize_string(s):
     s = unicodedata.normalize('NFKD', s)
     return ''.join(c for c in s if not unicodedata.combining(c)).lower()
 
-
-
 # Naslednji naslov aplikacije
 st.title("Iskalnik po bazi lastnih imen korpusa Maj68")
 
@@ -156,6 +154,11 @@ if query_input:
                 expander.markdown(f"[Več informacij na Wikipediji]({wiki_link.strip()})")
     else:
         st.write("Ni najdenih rezultatov.")
+
+# Insert dividing line with spacing before and after
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Dodaj footer z disclaimerjem in logotipom: disclaimer levo, logotip desno
 col1, col2 = st.columns([3, 1])
