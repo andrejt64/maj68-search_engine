@@ -21,7 +21,7 @@ with col1:
     )
 with col2:
     st.image(
-        "https://github.com/andrejt64/maj68-search_engine/blob/main/DARIAH-SI_logo_CMYK.jpg",
+        "https://raw.githubusercontent.com/andrejt64/maj68-search_engine/main/DARIAH-SI_logo_CMYK.jpg",
         use_container_width=True
     )
 
