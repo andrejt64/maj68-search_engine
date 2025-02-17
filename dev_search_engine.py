@@ -65,7 +65,7 @@ rename_dict = {
     "birth": "leto rojstva",
     "text_type": "zvrst",
     "year": "leto izdaje",
-    "character": "kanonična oblika"
+    "character": "protagonist"
 }
 
 # Normaliziraj podatke za predloge za samodejno dopolnjevanje
