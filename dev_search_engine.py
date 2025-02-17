@@ -23,21 +23,17 @@ def load_data():
         st.error("Napaka: Delovni list 'Sheet1' ni najden v datoteki.")
         return pd.DataFrame()
     
-    # === Modification in Section 3.3: Preprocessing Comments ===
-    # For each row with a non-empty 'comment', save the original 'character' value,
-    # then replace 'character' with 'real_char' and prepend the original 'character'
-    # to the 'comment'. This way, the canonical name used in other parts is 'real_char',
-    # while the comment shows the original 'character' value.
+    # === Preprocessing Comments (Section 3.3) ===
+    # Za vsak vrstico, kjer je 'comment' neprazen:
+    # 1. Shranimo originalno vrednost 'character' v začasni stolpec.
+    # 2. Nadomestimo 'character' z vrednostjo iz 'real_char'.
+    # 3. K 'comment' dodamo originalno vrednost 'character'.
     mask = df['comment'].notna()
-    # Save original 'character' value in a temporary column
     df.loc[mask, 'original_character'] = df.loc[mask, 'character']
-    # Replace 'character' with the value from 'real_char'
     df.loc[mask, 'character'] = df.loc[mask, 'real_char']
-    # Prepend the original 'character' value to the comment
     df.loc[mask, 'comment'] = df.loc[mask, 'original_character'].astype(str) + ": " + df.loc[mask, 'comment'].astype(str)
-    # Remove the temporary column
     df.drop(columns=['original_character'], inplace=True)
-    # ============================================================
+    # ===========================================
     
     return df
 
@@ -78,16 +74,15 @@ normalized_data = data.applymap(normalize_string)
 # Tip iskanja
 search_type = st.radio("Način iskanja:", ["Globalno iskanje", "Iskanje v določenem polju"])
 
-# === Modification in Section 7.2: Specific Column Selection ===
-# Use Slovenian names for the dropdown (from rename_dict) rather than raw valid_columns.
+# === Specific Column Selection (Section 7.2) ===
+# Uporabi slovenske imenske oznake, pridobljene iz rename_dict.
 if search_type == "Iskanje v določenem polju":
-    # Create a mapping from Slovenian display name to original column name
     options = {rename_dict.get(col, col): col for col in valid_columns}
     selected_slov = st.selectbox("Izberi stolpec za iskanje:", list(options.keys()))
     column = options[selected_slov]
 else:
     column = None
-# ============================================================
+# ==========================================
 
 # Izbira načina ujemanja
 match_type = st.radio("Vrsta ujemanja:", ["Delno ujemanje", "Natančno ujemanje"])
@@ -139,11 +134,17 @@ if query_input:
 
         # Prikaz dodatnih informacij za vsak unikatni zapis
         for _, row in results_unique.iterrows():
-            # Uporabimo vedno vrednost iz 'character' kot kanonično ime
+            # Uporabi vrednost iz 'character' kot kanonično ime
             canonical = row['character']
-            # Filter za variacije: samo tiste zapise, kjer se 'character' ujema in kjer je tekst (title) enak trenutnemu zapisu.
-            mask = (data['character'].astype(str).apply(normalize_string) == normalize_string(canonical)) & \
-                   (data["title_(year)"] == row["title_(year)"])
+            # === Spremenjena maska (Section 10.4) ===
+            # Uporabimo natančno primerjanje normaliziranih vrednosti, 
+            # da se ne združujejo različni expanderji.
+            mask = (data["title_(year)"] == row["title_(year)"]) & (
+                data['character'].astype(str).apply(
+                    lambda x: normalize_string(x) == normalize_string(canonical)
+                )
+            )
+            # ======================================
             
             # Zberi variacije imen iz stolpcev 'lemma' in 'surface'
             lemmas = data.loc[mask, 'lemma'].dropna().astype(str).unique()
@@ -153,18 +154,17 @@ if query_input:
             # Pridobi naslov dela iz stolpca "title_(year)" (ki se prikaže kot "naslov")
             title_val = row["title_(year)"] if "title_(year)" in row.index else ""
             
-            # === Modification in Section 10.4: Displaying the Expander ===
-            # After the entry, show "author" and "title" in the brackets, e.g. (Edvard Kocbek: Strah in pogum)
+            # Prikaži expander z dodatnimi informacijami.
+            # Expander naslov vsebuje "author" in "title" v oklepaju, npr.: (Edvard Kocbek: Strah in pogum)
             author_val = row["author"] if "author" in row.index else ""
             expander = st.expander(f"{canonical} ({author_val}: {title_val})")
-            # ============================================================
             
             expander.write(f"Variacije imen: {', '.join(variations)}")
             comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
             expander.write(f"Komentar: {comment_text}")
             
             wiki_link = row['real_link']
-            # Povezavo prikaži samo, če wiki_link vsebuje veljaven URL (npr. se začne z "http")
+            # Povezavo prikaži le, če je URL veljaven (npr. se začne z "http")
             if isinstance(wiki_link, str) and wiki_link.strip().startswith("http"):
                 expander.markdown(f"[Več informacij na Wikipediji]({wiki_link.strip()})")
     else:
