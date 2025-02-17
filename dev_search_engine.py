@@ -65,7 +65,7 @@ rename_dict = {
     "birth": "leto rojstva",
     "text_type": "zvrst",
     "year": "leto izdaje",
-    "character": "protagonist"
+    "character": "kanonična oblika"  # spremenjeno iz "protagonist"
 }
 
 # Normaliziraj podatke za predloge za samodejno dopolnjevanje
@@ -96,7 +96,7 @@ query_input = st.text_input("Išči:", value=st.session_state.query_input)
 def search_data(dataframe, query, column=None, exact=False):
     normalized_query = normalize_string(query)
     if column:
-        # Če iščemo po kanoničnih oblikah, poišči samo po 'character' (ignoriramo 'real_char')
+        # Če iščemo po kanonični obliki, poišči samo po 'character' (ignoriramo 'real_char')
         if column == "character":
             if exact:
                 mask = dataframe['character'].astype(str).apply(normalize_string) == normalized_query
@@ -132,41 +132,53 @@ if query_input:
         else:
             results_unique = results
 
-        # Prikaz dodatnih informacij za vsak unikatni zapis
+        # Pripravi normalizirano iskalno poizvedbo (uporabimo jo pri globalnem iskanju)
+        normalized_query = normalize_string(query_input)
+        
+        # Prikaz dodatnih informacij za vsak unikatni zapis (expander)
         for _, row in results_unique.iterrows():
-            # Uporabi vrednost iz 'character' kot kanonično ime
             canonical = row['character']
-            # === Spremenjena maska (Section 10.4) ===
-            # Uporabimo natančno primerjanje normaliziranih vrednosti, 
-            # da se ne združujejo različni expanderji.
-            mask = (data["title_(year)"] == row["title_(year)"]) & (
-                data['character'].astype(str).apply(
-                    lambda x: normalize_string(x) == normalize_string(canonical)
-                )
-            )
-            # ======================================
-            
-            # Zberi variacije imen iz stolpcev 'lemma' in 'surface'
-            lemmas = data.loc[mask, 'lemma'].dropna().astype(str).unique()
-            surfaces = data.loc[mask, 'surface'].dropna().astype(str).unique()
-            variations = set(list(lemmas) + list(surfaces))
-            
-            # Pridobi naslov dela iz stolpca "title_(year)" (ki se prikaže kot "naslov")
+            author_val = row["author"] if "author" in row.index else ""
             title_val = row["title_(year)"] if "title_(year)" in row.index else ""
             
-            # Prikaži expander z dodatnimi informacijami.
-            # Expander naslov vsebuje "author" in "title" v oklepaju, npr.: (Edvard Kocbek: Strah in pogum)
-            author_val = row["author"] if "author" in row.index else ""
-            expander = st.expander(f"{canonical} ({author_val}: {title_val})")
-            
-            expander.write(f"Variacije imen: {', '.join(variations)}")
-            comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
-            expander.write(f"Komentar: {comment_text}")
-            
-            wiki_link = row['real_link']
-            # Povezavo prikaži le, če je URL veljaven (npr. se začne z "http")
-            if isinstance(wiki_link, str) and wiki_link.strip().startswith("http"):
-                expander.markdown(f"[Več informacij na Wikipediji]({wiki_link.strip()})")
+            # Pogoji za prikaz expanderja:
+            #  - Če je globalno iskanje in se iskani niz nahaja v 'character'
+            #  - Ali pa je izbrano iskanje v določenem polju in je ta stolpec 'character'
+            show_expander = False
+            if search_type == "Globalno iskanje":
+                if normalized_query in normalize_string(str(row['character'])):
+                    show_expander = True
+            elif search_type == "Iskanje v določenem polju" and column == "character":
+                show_expander = True
+
+            if show_expander:
+                # Pridobi expander z dodatnimi informacijami.
+                expander = st.expander(f"{canonical} ({author_val}: {title_val})")
+                
+                # Izpiši tudi vrednost, ki je v stolpcu 'real_char'
+                if pd.notna(row.get('real_char')):
+                    expander.write(f"Izvirna oblika: {row['real_char']}")
+                
+                # Spremenjena maska (Section 10.4)
+                mask = (data["title_(year)"] == row["title_(year)"]) & (
+                    data['character'].astype(str).apply(
+                        lambda x: normalize_string(x) == normalize_string(canonical)
+                    )
+                )
+                
+                # Zberi variacije imen iz stolpcev 'lemma' in 'surface'
+                lemmas = data.loc[mask, 'lemma'].dropna().astype(str).unique()
+                surfaces = data.loc[mask, 'surface'].dropna().astype(str).unique()
+                variations = set(list(lemmas) + list(surfaces))
+                
+                expander.write(f"Variacije imen: {', '.join(variations)}")
+                comment_text = row['comment'] if pd.notna(row['comment']) else "Ni komentarja."
+                expander.write(f"Komentar: {comment_text}")
+                
+                wiki_link = row['real_link']
+                # Povezavo prikaži le, če je URL veljaven (npr. se začne z "http")
+                if isinstance(wiki_link, str) and wiki_link.strip().startswith("http"):
+                    expander.markdown(f"[Več informacij na Wikipediji]({wiki_link.strip()})")
     else:
         st.write("Ni najdenih rezultatov.")
 
