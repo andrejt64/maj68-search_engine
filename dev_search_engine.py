@@ -65,7 +65,7 @@ rename_dict = {
     "birth": "leto rojstva",
     "text_type": "zvrst",
     "year": "leto izdaje",
-    "character": "protagonist"
+    "character": "kanonična oblika"
 }
 
 # Normaliziraj podatke za predloge za samodejno dopolnjevanje
@@ -96,7 +96,7 @@ query_input = st.text_input("Išči:", value=st.session_state.query_input)
 def search_data(dataframe, query, column=None, exact=False):
     normalized_query = normalize_string(query)
     if column:
-        # Če iščemo po protagonistih, poišči samo po 'character' (ignoriramo 'real_char')
+        # Če iščemo po kanoničnih oblikah, poišči samo po 'character' (ignoriramo 'real_char')
         if column == "character":
             if exact:
                 mask = dataframe['character'].astype(str).apply(normalize_string) == normalized_query
